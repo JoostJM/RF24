@@ -34,6 +34,7 @@ docs/*/xml/
 docs/_build/
 doxygenAction
 .vscode/
+.vs/
 __pycache__/
 *env
 *.pyc
