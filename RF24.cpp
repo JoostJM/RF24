@@ -15,7 +15,7 @@
 void RF24::csn(bool mode)
 {
 #if defined(RF24_TINY)
-    if (ce_pin != csn_pin) {
+    if (csn_pin != RF24_PIN_INVALID) {
         digitalWrite(csn_pin, mode);
     }
     else {
@@ -90,7 +90,7 @@ void RF24::csn(bool mode)
         _SPI.chipSelect(csn_pin);
 #endif // defined(RF24_RPi)
 
-#if !defined(RF24_LINUX)
+#ifndef RF24_LINUX
     digitalWrite(csn_pin, mode);
     delayMicroseconds(csDelay);
 #else
@@ -104,7 +104,7 @@ void RF24::ce(bool level)
 {
 #ifndef RF24_LINUX
     //Allow for 3-pin use on ATTiny
-    if (ce_pin != csn_pin) {
+    if (ce_pin != RF24_PIN_INVALID) {
 #endif
         digitalWrite(ce_pin, level);
 #ifndef RF24_LINUX
@@ -1023,10 +1023,12 @@ bool RF24::begin(void)
 
 bool RF24::_init_pins()
 {
+#ifndef RF24_TINY
     if (!isValid()) {
         // didn't specify the CSN & CE pins to c'tor nor begin()
         return false;
     }
+#endif
 
 #if defined(RF24_LINUX)
 
@@ -1044,9 +1046,9 @@ bool RF24::_init_pins()
     csn(HIGH);
 
 #elif defined(XMEGA_D3)
-    if (ce_pin != csn_pin) {
+    if (ce_pin != RF24_PIN_INVALID) {
         pinMode(ce_pin, OUTPUT);
-    };
+    }
     ce(LOW);
     csn(HIGH);
     delay(200);
@@ -1054,9 +1056,11 @@ bool RF24::_init_pins()
 #else // using an Arduino platform
 
     // Initialize pins
-    if (ce_pin != csn_pin) {
+    if (ce_pin != RF24_PIN_INVALID) {
         pinMode(ce_pin, OUTPUT);
-        pinMode(csn_pin, OUTPUT);
+    }
+    if (csn_pin != RF24_PIN_INVALID){
+        pinMode(csn_pin, OUTPUT);        
     }
 
     ce(LOW);
@@ -1158,7 +1162,11 @@ bool RF24::isValid()
 
 void RF24::startListening(void)
 {
-#if !defined(RF24_TINY) && !defined(LITTLEWIRE)
+#ifdef RF24_TINY
+    if (ce_pin != RF24_PIN_INVALID) {
+        powerUp();
+    }
+#elif !defined(LITTLEWIRE)
     powerUp();
 #endif
     config_reg |= _BV(PRIM_RX);
@@ -1195,7 +1203,7 @@ void RF24::stopListening(void)
 
 #if defined(RF24_TINY) || defined(LITTLEWIRE)
     // for 3 pins solution TX mode is only left with additional powerDown/powerUp cycle
-    if (ce_pin == csn_pin) {
+    if (ce_pin == RF24_PIN_INVALID) {
         powerDown();
         powerUp();
     }
